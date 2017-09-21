@@ -1,0 +1,12 @@
+package hoa;
+
+message HOAFrame {
+required string uuid = 1;
+required bytes data = 2;
+required uint32 width = 3;
+required uint32 height = 4;
+required uint32 type = 5;
+required bool is_heart = 6;
+optional bool debug_mode = 7;
+}
+
