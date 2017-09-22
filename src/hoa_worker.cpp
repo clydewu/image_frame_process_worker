@@ -78,7 +78,7 @@ int main ( int argc, char** argv)
     comm.Connect();
     comm.CreateQueue(in_queue);
 
-    enableOpenCL(gpu_id);
+    //enableOpenCL(gpu_id);
 
     while (true)
     {
@@ -92,12 +92,12 @@ int main ( int argc, char** argv)
         //-- Fetch HOAFrame from RabbitMQ
         hoa::HOAFrame in_frame;
         comm.Recv(in_queue, in_frame);
-        LOG4CXX_DEBUG(g_logger, "Get one frame from " << in_frame.uuid());
 
         src_uuid = in_frame.uuid();
         height = in_frame.height();
         width = in_frame.width();
         type = in_frame.type();
+        LOG4CXX_DEBUG(g_logger, "Get one frame from element " << src_uuid);
         src_mat = Mat(height, width, type, (unsigned char*)(in_frame.data().data()));
         debug_mode = in_frame.debug_mode();
         in_frame.Clear();
@@ -116,7 +116,7 @@ int main ( int argc, char** argv)
         out_frame.set_is_heart(is_heart);
         comm.Send(src_uuid, out_frame);
         out_frame.Clear();
-        LOG4CXX_DEBUG(g_logger, "Send one frame to " << in_frame.uuid());
+        LOG4CXX_DEBUG(g_logger, "Send one frame back to element " << src_uuid);
 
     }
     
@@ -147,11 +147,8 @@ void init_logger(int gpu_id)
 
 bool enableOpenCL(int deviceId)
 {
-    cout << "1" << endl;
     DevicesInfo devicesInfo;
-    cout << "2" << endl;
     ocl::getOpenCLDevices(devicesInfo);
-    cout << "3" << endl;
     for (auto dev: devicesInfo)
     {
         cout << dev->deviceName << endl;
@@ -415,7 +412,7 @@ bool isHeartShape(vector<Point>& polygon, vector<int>& hull, vector<Vec4i>& defe
     }
 
     rectangle(image, Point(leftBoundary, topBoundary), Point(rightBoundary, bottomBoundary), kBGRPurple);
-    cout << "top: " << topBoundary << ", bottom: " << bottomBoundary << ", left: " << leftBoundary << ", right: " << rightBoundary << endl;
+    LOG4CXX_DEBUG(g_logger, "top: " << topBoundary << ", bottom: " << bottomBoundary << ", left: " << leftBoundary << ", right: " << rightBoundary);
 
     for (unsigned int i = 0; i < defects.size(); i++) {
         if (polygon[defects[i][kDefectFarestPointIdx]].y < topDefectY) {
@@ -428,7 +425,7 @@ bool isHeartShape(vector<Point>& polygon, vector<int>& hull, vector<Vec4i>& defe
     circle(image, polygon[defects[topDefectIdx][kDefectEndPointIdx]], 6, KBGROliva, 2, CV_AA);
     line(image, polygon[defects[topDefectIdx][kDefectFarestPointIdx]], polygon[defects[topDefectIdx][kDefectStartPointIdx]], kBGRMaroon, 3, CV_AA);
     line(image, polygon[defects[topDefectIdx][kDefectFarestPointIdx]], polygon[defects[topDefectIdx][kDefectEndPointIdx ]], kBGRMaroon, 3, CV_AA);
-    cout << "Start Point Y: " << polygon[defects[topDefectIdx][kDefectStartPointIdx]].y << ", End Point Y: " << polygon[defects[topDefectIdx][kDefectEndPointIdx]].y << endl;
+    LOG4CXX_DEBUG(g_logger, "Start Point Y: " << polygon[defects[topDefectIdx][kDefectStartPointIdx]].y << ", End Point Y: " << polygon[defects[topDefectIdx][kDefectEndPointIdx]].y);
 
     if (hull.size() < 4 || hull.size() > 8) {
         return false;
@@ -443,7 +440,7 @@ bool isHeartShape(vector<Point>& polygon, vector<int>& hull, vector<Vec4i>& defe
         return false;
     }
 
-    cout << "Hull: " << hull.size() << ", Defect: " << defects.size() << endl;
+    LOG4CXX_DEBUG(g_logger, "Hull: " << hull.size() << ", Defect: " << defects.size());
     return true;
 }
 
