@@ -92,6 +92,7 @@ int main ( int argc, char** argv)
         //-- Fetch HOAFrame from RabbitMQ
         hoa::HOAFrame in_frame;
         comm.Recv(in_queue, in_frame);
+        LOG4CXX_DEBUG(g_logger, "Get one frame from " << in_frame.uuid());
 
         src_uuid = in_frame.uuid();
         height = in_frame.height();
@@ -103,6 +104,7 @@ int main ( int argc, char** argv)
         //-- Fetch Done
 
         bool is_heart = find_heart(src_mat);
+        LOG4CXX_DEBUG(g_logger, "Does frame have heart? " << is_heart);
 
         //-- Send back result frame
         HOAFrame out_frame;
@@ -114,6 +116,7 @@ int main ( int argc, char** argv)
         out_frame.set_is_heart(is_heart);
         comm.Send(src_uuid, out_frame);
         out_frame.Clear();
+        LOG4CXX_DEBUG(g_logger, "Send one frame to " << in_frame.uuid());
 
     }
     
