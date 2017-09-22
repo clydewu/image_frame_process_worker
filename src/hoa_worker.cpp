@@ -10,6 +10,13 @@
 #include <string>
 #include <limits>
 
+#include "log4cxx/basicconfigurator.h"
+#include "log4cxx/propertyconfigurator.h"
+#include "log4cxx/helpers/exception.h"
+#include "log4cxx/patternlayout.h"
+#include "log4cxx/fileappender.h"
+#include "log4cxx/consoleappender.h"
+
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui.hpp>
@@ -23,15 +30,15 @@
 
 #include "const.hpp"
 
-using namespace ocl;
 using namespace std;
+using namespace ocl;
+using namespace log4cxx;
 using namespace cv;
 using namespace hoa;
 
-typedef vector<Point> Contour;
-typedef vector< vector<Point> > ContourSet;
 
-bool enableOpenGL(int deviceId);
+void init_logger(int gpu_id);
+bool enableOpenCL(int deviceId);
 bool find_heart(Mat& src_mat);
 void preprocess_pipe(Mat& mat);
 double dist(Point x, Point y);
@@ -43,6 +50,8 @@ bool isHeartShape(vector<Point>& polygon, vector<int>& hull, vector<Vec4i>& defe
 bool gui = false;
 bool debug_mode = false;
 
+LoggerPtr g_logger(LoggerPtr(Logger::getLogger(kLoggerName.c_str())));
+
 int main ( int argc, char** argv)
 {
     // argv[1] hostname
@@ -52,7 +61,7 @@ int main ( int argc, char** argv)
     
     if (argc < 5)
     {
-        cout << "Usage: " << argv[0] << "hostname ip in_queue gpu_id";
+        cout << "Usage: " << argv[0] << " hostname port in_queue gpu_id" << endl;
         return -1;
     }
 
@@ -60,12 +69,16 @@ int main ( int argc, char** argv)
     const int port(atoi(argv[2]));
     const string in_queue(argv[3]);
     const int gpu_id(atoi(argv[4]));
-    
+
+    init_logger(gpu_id);
+    LOG4CXX_INFO(g_logger, "========== New HOA Worker start, gpu_id: " << gpu_id << " ==========");
+
     hoa::AMQPBComm comm(hostname, port);
+    LOG4CXX_INFO(g_logger, "Connect to RabbitMQ, hostanem: " << hostname << ", port: " << port);
     comm.Connect();
     comm.CreateQueue(in_queue);
 
-    enableOpenGL(gpu_id);
+    enableOpenCL(gpu_id);
 
     while (true)
     {
@@ -108,7 +121,28 @@ int main ( int argc, char** argv)
 }
 
 
-bool enableOpenGL(int deviceId)
+void init_logger(int gpu_id)
+{
+    g_logger->setLevel(log4cxx::Level::getDebug());
+    PatternLayoutPtr layout = new PatternLayout();
+    layout->setConversionPattern("[%d{yyyy-MM-ddTHH:mm:ss,SSS}] [%-5p]: %m%n");
+
+    FileAppenderPtr file_appender_ptr = new FileAppender();
+    file_appender_ptr->setName("File");
+    file_appender_ptr->setFile("/var/log/kurento-media-server/worker/GPU_" + to_string(gpu_id) + ".log");
+    file_appender_ptr->setLayout(layout);
+    helpers::Pool p;
+    file_appender_ptr->activateOptions(p);
+
+    ConsoleAppenderPtr cs_appender_ptr = new ConsoleAppender(layout);
+    cs_appender_ptr->setName("Console");
+
+    g_logger->addAppender(file_appender_ptr);
+    g_logger->addAppender(cs_appender_ptr);
+}
+
+
+bool enableOpenCL(int deviceId)
 {
     cout << "1" << endl;
     DevicesInfo devicesInfo;
